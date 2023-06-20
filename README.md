@@ -1,6 +1,6 @@
 # data_melody
 
-A new Flutter plugin project.
+A new Flutter plugin project for data over sound
 
 ## Getting Started
 
