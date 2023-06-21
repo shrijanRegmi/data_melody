@@ -3,6 +3,7 @@ package com.madebysr.data_melody
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -30,6 +31,7 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
     private lateinit var context: Context
 
     private val uiThreadHandler: Handler = Handler(Looper.getMainLooper())
+    private lateinit var audioManager: AudioManager
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
@@ -82,16 +84,21 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         System.loadLibrary("test-cpp")
         initNative()
 
+        audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
         result.success(null)
     }
 
     private fun startSendingData(call: MethodCall, result: Result) {
         val data = call.argument<String>("data")
         val player = call.argument<String>("player")
+        val volume = call.argument<Int>("volume") ?: 50
+
+        setDeviceVolume(volume)
 
         val txProtocolId = getTxProtocolId(player!!)
-
         sendMessage(data!!, txProtocolId)
+
         mPlaybackThread.startPlayback()
 
         result.success(null)
@@ -136,6 +143,11 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
             "dtFastest" -> 8
             else -> 3
         }
+    }
+
+    private fun setDeviceVolume(volume: Int) {
+        val requiredVol = (audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) / 100.0) * volume
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, requiredVol.toInt(), 0)
     }
 
     override fun onListen(arguments: Any?, events: EventSink?) {
