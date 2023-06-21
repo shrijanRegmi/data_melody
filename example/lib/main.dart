@@ -19,7 +19,10 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final _dataMelody = DataMelody();
+
   late Stream<Map<String, dynamic>> _receivedDataStream;
+  late Stream<bool> _isSendingDataStream;
+
   final _messageController = TextEditingController(text: 'hello world');
   var _selectedPlayerType = DataMelodyPlayer.ultrasonicNormal;
   var _volume = 50;
@@ -28,6 +31,8 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _receivedDataStream = _dataMelody.receivedData;
+    _isSendingDataStream = _dataMelody.isSendingData;
+
     _startListening();
   }
 
@@ -161,16 +166,38 @@ class _MyAppState extends State<MyApp> {
     return Row(
       children: [
         Expanded(
-          child: ElevatedButton(
-            child: const Text('Start Playing Sound'),
-            onPressed: () async {
-              FocusManager.instance.primaryFocus?.unfocus();
+          child: StreamBuilder<bool>(
+            stream: _isSendingDataStream,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final isSendingData = snapshot.data ?? false;
 
-              await _dataMelody.startSendingData(
-                data: _messageController.text,
-                player: _selectedPlayerType,
-                volume: _volume,
-              );
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isSendingData ? Colors.red : null,
+                  ),
+                  onPressed: () async {
+                    FocusManager.instance.primaryFocus?.unfocus();
+
+                    if (isSendingData) {
+                      await _dataMelody.stopSendingData();
+                    } else {
+                      await _dataMelody.startSendingData(
+                        data: _messageController.text,
+                        player: _selectedPlayerType,
+                        volume: _volume,
+                      );
+                    }
+                  },
+                  child: Text(
+                    isSendingData
+                        ? 'Stop Playing Sound'
+                        : 'Start Playing Sound',
+                  ),
+                );
+              }
+
+              return const SizedBox();
             },
           ),
         ),

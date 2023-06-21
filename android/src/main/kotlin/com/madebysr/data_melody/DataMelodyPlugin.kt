@@ -1,16 +1,10 @@
 package com.madebysr.data_melody
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.View
-import android.widget.Button
-import android.widget.TextView
-import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
@@ -18,28 +12,89 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import java.util.logging.StreamHandler
 
 /** DataMelodyPlugin */
-class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler {
-    private lateinit var channel : MethodChannel
-    private lateinit var eventChannel: EventChannel
-    private var eventSink: EventSink? = null
+class DataMelodyPlugin: FlutterPlugin, MethodCallHandler {
 
-    private lateinit var mCapturingThread: CapturingThread
+    private lateinit var channel : MethodChannel
+    
+    private lateinit var ecReceivedData: EventChannel
+    private lateinit var ecIsSendingData: EventChannel
+    private lateinit var ecIsReceivingData: EventChannel
+    
+    private var esReceivedData: EventSink? = null
+    private var esIsSendingData: EventSink? = null
+    private var esIsReceivingData: EventSink? = null
+
+    private var mCapturingThread: CapturingThread? = null
     private var mPlaybackThread: PlaybackThread? = null
-    private lateinit var context: Context
+
+    private var isSendingData: Boolean = false
+    private var isReceivingData: Boolean = false
 
     private val uiThreadHandler: Handler = Handler(Looper.getMainLooper())
+    private val isReceivingHandler: Handler = Handler(Looper.getMainLooper())
+    private val isSendingHandler: Handler = Handler(Looper.getMainLooper())
+
+    private lateinit var context: Context
     private lateinit var audioManager: AudioManager
+
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "data_melody")
-        eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "data_melody_event_channel")
+
+        channel = MethodChannel(
+            flutterPluginBinding.binaryMessenger,
+            "data_melody"
+        )
+        ecReceivedData = EventChannel(
+            flutterPluginBinding.binaryMessenger,
+            "event_channels/received_data_event_channel"
+        )
+        ecIsSendingData = EventChannel(
+            flutterPluginBinding.binaryMessenger,
+            "event_channels/is_sending_data_event_channel"
+        )
+        ecIsReceivingData = EventChannel(
+            flutterPluginBinding.binaryMessenger,
+            "event_channels/is_receiving_data_event_channel"
+        )
 
         channel.setMethodCallHandler(this)
-        eventChannel.setStreamHandler(this)
+        ecReceivedData.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventSink?) {
+                esReceivedData = events
+                esReceivedData?.success(hashMapOf<String, Any>())
+            }
+
+            override fun onCancel(arguments: Any?) {
+                esReceivedData = null
+            }
+        })
+        ecIsSendingData.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventSink?) {
+                esIsSendingData = events
+                esIsSendingData?.success(false)
+                isSendingHandler.post(isSendingRunner)
+            }
+
+            override fun onCancel(arguments: Any?) {
+                esIsSendingData = null
+                isSendingHandler.removeCallbacks(isSendingRunner)
+            }
+        })
+        ecIsReceivingData.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventSink?) {
+                esIsReceivingData = events
+                esIsReceivingData?.success(false)
+                isReceivingHandler.post(isReceivingRunner)
+            }
+
+            override fun onCancel(arguments: Any?) {
+                esIsReceivingData = null
+                isReceivingHandler.removeCallbacks(isReceivingRunner)
+            }
+        })
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
@@ -66,7 +121,7 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
     private fun onNativeMessageReceived(c_message: ByteArray) {
         val message = String(c_message)
         uiThreadHandler.post {
-            eventSink?.success(hashMapOf("data" to message))
+            esReceivedData?.success(hashMapOf("data" to message))
         }
     }
 
@@ -77,9 +132,32 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
             }
 
             override fun onCompletion() {
-                mPlaybackThread?.stopPlayback()
+
             }
         })
+    }
+
+
+    private val isReceivingRunner: Runnable = object: Runnable {
+        override fun run() {
+            val isRecordingOn = mCapturingThread?.capturing() == true
+            if(isReceivingData != isRecordingOn) {
+                isReceivingData = isRecordingOn
+                esIsReceivingData?.success(mCapturingThread?.capturing() == true)
+            }
+            isReceivingHandler.postDelayed(this, 200)
+        }
+    }
+
+    private val isSendingRunner: Runnable = object: Runnable {
+        override fun run() {
+            val isPlayerOn = mPlaybackThread?.playing() == true
+            if(isSendingData != isPlayerOn) {
+                isSendingData = isPlayerOn
+                esIsSendingData?.success(mPlaybackThread?.playing() == true)
+            }
+            isSendingHandler.postDelayed(this, 200)
+        }
     }
 
     private fun initialize(call: MethodCall, result: Result) {
@@ -126,15 +204,15 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
             }
         })
 
-        if(!mCapturingThread.capturing()) {
-            mCapturingThread.startCapturing()
+        if(mCapturingThread?.capturing() == false) {
+            mCapturingThread?.startCapturing()
         }
 
         result.success(null)
     }
 
     private fun stopReceivingData(call: MethodCall, result: Result) {
-        mCapturingThread.stopCapturing()
+        mCapturingThread?.stopCapturing()
 
         result.success(null)
     }
@@ -157,15 +235,6 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
     private fun setDeviceVolume(volume: Int) {
         val requiredVol = (audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) / 100.0) * volume
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, requiredVol.toInt(), 0)
-    }
-
-    override fun onListen(arguments: Any?, events: EventSink?) {
-        eventSink = events
-        eventSink?.success(hashMapOf<String, Any>())
-    }
-
-    override fun onCancel(arguments: Any?) {
-        eventSink = null
     }
 }
 

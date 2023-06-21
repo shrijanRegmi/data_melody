@@ -42,4 +42,8 @@ abstract class DataMelodyPlatform extends PlatformInterface {
   Future<void> stopReceivingData();
 
   Stream<Map<String, dynamic>> get receivedData;
+
+  Stream<bool> get isSendingData;
+
+  Stream<bool> get isReceivingData;
 }

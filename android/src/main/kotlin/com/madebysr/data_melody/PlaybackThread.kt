@@ -5,6 +5,7 @@ import android.media.AudioManager
 import android.media.AudioTrack
 import android.util.Log
 import java.nio.ShortBuffer
+import java.util.logging.Handler
 
 
 internal interface PlaybackListener {
@@ -71,9 +72,12 @@ internal class PlaybackThread(
 
             override fun onMarkerReached(track: AudioTrack) {
                 Log.v(LOG_TAG, "Audio file end reached")
-//                track.release()
-//                mListener?.onCompletion()
-                play()
+                track.release()
+                mListener?.onCompletion()
+
+                android.os.Handler().postDelayed({
+                    play()
+                }, 700)
             }
         })
 

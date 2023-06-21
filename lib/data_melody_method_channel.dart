@@ -7,13 +7,23 @@ import 'data_melody_platform_interface.dart';
 
 /// An implementation of [DataMelodyPlatform] that uses method channels.
 class MethodChannelDataMelody extends DataMelodyPlatform {
-  /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('data_melody');
 
-  /// The event channel used to interact with the native platform.
   @visibleForTesting
-  final eventChannel = const EventChannel('data_melody_event_channel');
+  final receivedDataEventChannel = const EventChannel(
+    'event_channels/received_data_event_channel',
+  );
+
+  @visibleForTesting
+  final isSendingDataEventChannel = const EventChannel(
+    'event_channels/is_sending_data_event_channel',
+  );
+
+  @visibleForTesting
+  final isReceivingDataEventChannel = const EventChannel(
+    'event_channels/is_receiving_data_event_channel',
+  );
 
   @override
   Future<void> initialize() {
@@ -56,13 +66,25 @@ class MethodChannelDataMelody extends DataMelodyPlatform {
   }
 
   @override
+  Future<PermissionStatus> requestReceivingPermission() async {
+    return await Permission.microphone.request();
+  }
+
+  @override
   Stream<Map<String, dynamic>> get receivedData =>
-      eventChannel.receiveBroadcastStream().map(
+      receivedDataEventChannel.receiveBroadcastStream().map(
             (event) => Map<String, dynamic>.from(event),
           );
 
   @override
-  Future<PermissionStatus> requestReceivingPermission() async {
-    return await Permission.microphone.request();
-  }
+  Stream<bool> get isSendingData =>
+      isSendingDataEventChannel.receiveBroadcastStream().map(
+            (event) => event as bool,
+          );
+
+  @override
+  Stream<bool> get isReceivingData =>
+      isReceivingDataEventChannel.receiveBroadcastStream().map(
+            (event) => event as bool,
+          );
 }

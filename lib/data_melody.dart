@@ -77,11 +77,19 @@ class DataMelody {
     return DataMelodyPlatform.instance.stopReceivingData();
   }
 
-  /// Get the stream of data that is received from the native audio recorder. The [startReceivingData] function must me called before this getter.
+  /// Gets the stream of data that is received from the native audio recorder. The [startReceivingData] function must me called before this getter.
   Stream<Map<String, dynamic>> get receivedData =>
       DataMelodyPlatform.instance.receivedData;
 
+  /// Requests the Permission.microphone
   Future<PermissionStatus> requestReceivingPermission() {
     return DataMelodyPlatform.instance.requestReceivingPermission();
   }
+
+  /// [isSendingData] is true if the native audio player is playing
+  Stream<bool> get isSendingData => DataMelodyPlatform.instance.isSendingData;
+
+  /// [isReceivingData] is true if the native audio recorder is recording
+  Stream<bool> get isReceivingData =>
+      DataMelodyPlatform.instance.isReceivingData;
 }
