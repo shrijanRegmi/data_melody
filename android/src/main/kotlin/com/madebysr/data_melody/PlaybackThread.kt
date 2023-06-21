@@ -71,8 +71,9 @@ internal class PlaybackThread(
 
             override fun onMarkerReached(track: AudioTrack) {
                 Log.v(LOG_TAG, "Audio file end reached")
-                track.release()
-                mListener?.onCompletion()
+//                track.release()
+//                mListener?.onCompletion()
+                play()
             }
         })
 

@@ -27,7 +27,7 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
     private var eventSink: EventSink? = null
 
     private lateinit var mCapturingThread: CapturingThread
-    private lateinit var mPlaybackThread: PlaybackThread
+    private var mPlaybackThread: PlaybackThread? = null
     private lateinit var context: Context
 
     private val uiThreadHandler: Handler = Handler(Looper.getMainLooper())
@@ -72,10 +72,12 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
 
     private fun onNativeMessageEncoded(c_message: ShortArray) {
         mPlaybackThread = PlaybackThread(c_message, object : PlaybackListener {
-            override fun onProgress(progress: Int) {}
+            override fun onProgress(progress: Int) {
+                Log.d("PROGRESS", progress.toString())
+            }
 
             override fun onCompletion() {
-                mPlaybackThread.stopPlayback()
+                mPlaybackThread?.stopPlayback()
             }
         })
     }
@@ -90,6 +92,13 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
     }
 
     private fun startSendingData(call: MethodCall, result: Result) {
+        mPlaybackThread?.let {
+            if(it.playing()) {
+                result.success(null)
+                return
+            }
+        }
+
         val data = call.argument<String>("data")
         val player = call.argument<String>("player")
         val volume = call.argument<Int>("volume") ?: 50
@@ -99,13 +108,13 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHan
         val txProtocolId = getTxProtocolId(player!!)
         sendMessage(data!!, txProtocolId)
 
-        mPlaybackThread.startPlayback()
+        mPlaybackThread?.startPlayback()
 
         result.success(null)
     }
 
     private fun stopSendingData(call: MethodCall, result: Result) {
-        mPlaybackThread.stopPlayback()
+        mPlaybackThread?.stopPlayback()
 
         result.success(null)
     }
