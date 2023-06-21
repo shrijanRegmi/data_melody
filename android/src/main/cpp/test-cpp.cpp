@@ -45,7 +45,7 @@ Java_com_madebysr_data_1melody_DataMelodyPlugin_processCaptureData(JNIEnv *env, 
         __android_log_print(ANDROID_LOG_DEBUG, "ggwave (native)", "Received message: '%s'", output);
 
         jclass handlerClass = env->GetObjectClass(g_mainObject);
-        jmethodID mid_onReceivedMessage = env->GetMethodID(handlerClass, "onNativeReceivedMessage", "([B)V");
+        jmethodID mid_onReceivedMessage = env->GetMethodID(handlerClass, "onNativeMessageReceived", "([B)V");
         jbyteArray jba_message = env->NewByteArray(strlen(output));
 
         env->SetByteArrayRegion(jba_message, 0, strlen(output), (jbyte*) output);
@@ -56,14 +56,35 @@ Java_com_madebysr_data_1melody_DataMelodyPlugin_processCaptureData(JNIEnv *env, 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_madebysr_data_1melody_DataMelodyPlugin_sendMessage(JNIEnv *env, jobject thiz, jstring message) {
+Java_com_madebysr_data_1melody_DataMelodyPlugin_sendMessage(
+        JNIEnv *env,
+        jobject thiz,
+        jstring message,
+        jint txProtocolId
+) {
     __android_log_print(ANDROID_LOG_DEBUG, "ggwave (native)", "Encoding message: '%s'", env->GetStringUTFChars(message, NULL));
 
-    const int n = ggwave_encode(g_ggwave, env->GetStringUTFChars(message, NULL), env->GetStringLength(message), GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL, 10, NULL, 1);
+    const int n = ggwave_encode(
+            g_ggwave,
+            env->GetStringUTFChars(message, NULL),
+            env->GetStringLength(message),
+            ggwave_TxProtocolId(txProtocolId),
+            100,
+            NULL,
+            1
+    );
 
     char waveform[n];
 
-    const int ret = ggwave_encode(g_ggwave, env->GetStringUTFChars(message, NULL), env->GetStringLength(message), GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL, 10, waveform, 0);
+    const int ret = ggwave_encode(
+            g_ggwave,
+            env->GetStringUTFChars(message, NULL),
+            env->GetStringLength(message),
+            ggwave_TxProtocolId(txProtocolId),
+            100,
+            waveform,
+            0
+    );
 
     if (2*ret != n) {
         __android_log_print(ANDROID_LOG_ERROR, "ggwave (native)", "Failed to encode message");

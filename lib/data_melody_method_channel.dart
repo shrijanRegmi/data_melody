@@ -1,6 +1,7 @@
 import 'package:data_melody/enums/data_melody_player_type.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'data_melody_platform_interface.dart';
 
@@ -20,7 +21,12 @@ class MethodChannelDataMelody extends DataMelodyPlatform {
   }
 
   @override
-  Future<void> startReceivingData() {
+  Future<void> startReceivingData() async {
+    final permissionStatus = await requestReceivingPermission();
+    if (!permissionStatus.isGranted) {
+      throw FlutterError('Permission.microphone is not granted');
+    }
+
     return methodChannel.invokeMethod('startReceivingData');
   }
 
@@ -54,4 +60,9 @@ class MethodChannelDataMelody extends DataMelodyPlatform {
       eventChannel.receiveBroadcastStream().map(
             (event) => Map<String, dynamic>.from(event),
           );
+
+  @override
+  Future<PermissionStatus> requestReceivingPermission() async {
+    return await Permission.microphone.request();
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:data_melody/data_melody_platform_interface.dart';
 import 'package:data_melody/enums/data_melody_player_type.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DataMelody {
   /// Initializes the data melody SDK. This is usually done before the runApp call.
@@ -79,4 +80,8 @@ class DataMelody {
   /// Get the stream of data that is received from the native audio recorder. The [startReceivingData] function must me called before this getter.
   Stream<Map<String, dynamic>> get receivedData =>
       DataMelodyPlatform.instance.receivedData;
+
+  Future<PermissionStatus> requestReceivingPermission() {
+    return DataMelodyPlatform.instance.requestReceivingPermission();
+  }
 }

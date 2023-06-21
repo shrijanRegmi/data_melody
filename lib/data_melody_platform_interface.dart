@@ -1,4 +1,5 @@
 import 'package:data_melody/enums/data_melody_player_type.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'data_melody_method_channel.dart';
@@ -33,6 +34,8 @@ abstract class DataMelodyPlatform extends PlatformInterface {
   });
 
   Future<void> stopSendingData();
+
+  Future<PermissionStatus> requestReceivingPermission();
 
   Future<void> startReceivingData();
 
