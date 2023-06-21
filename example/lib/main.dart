@@ -2,7 +2,9 @@ import 'package:data_melody/data_melody.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await DataMelody.initialize();
+
   runApp(const MyApp());
 }
 
