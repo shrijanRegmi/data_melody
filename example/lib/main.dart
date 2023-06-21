@@ -164,6 +164,8 @@ class _MyAppState extends State<MyApp> {
           child: ElevatedButton(
             child: const Text('Start Playing Sound'),
             onPressed: () async {
+              FocusManager.instance.primaryFocus?.unfocus();
+
               await _dataMelody.startSendingData(
                 data: _messageController.text,
                 player: _selectedPlayerType,
