@@ -16,6 +16,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  final _dataMelody = DataMelody();
+
   @override
   void initState() {
     super.initState();
@@ -28,8 +30,15 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: const Center(
-          child: Text('Home Screen'),
+        body: Center(
+          child: ElevatedButton(
+            child: const Text('Start Playing Sound'),
+            onPressed: () async {
+              await _dataMelody.startSendingData(
+                data: 'My name is shrijan regmi and I am testing the app',
+              );
+            },
+          ),
         ),
       ),
     );
