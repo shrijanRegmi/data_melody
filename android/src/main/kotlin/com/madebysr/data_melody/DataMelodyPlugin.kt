@@ -52,21 +52,22 @@ class DataMelodyPlugin: FlutterPlugin, MethodCallHandler {
     private fun initialize(call: MethodCall, result: Result) {
         System.loadLibrary("test-cpp")
         initNative()
+        result.success(null)
     }
 
     private fun startSendingData(call: MethodCall, result: Result) {
-
+        result.success(null)
     }
 
     private fun stopSendingData(call: MethodCall, result: Result) {
-
+        result.success(null)
     }
 
     private fun startReceivingData(call: MethodCall, result: Result) {
-
+        result.success(null)
     }
 
     private fun stopReceivingData(call: MethodCall, result: Result) {
-
+        result.success(null)
     }
 }
